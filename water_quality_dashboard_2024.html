@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2024 Rainy Season Water Quality Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #050d1a;
+    --surface: #0a1628;
+    --surface2: #0f1f38;
+    --border: #1a3050;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ff6b35;
+    --warn: #ffb700;
+    --danger: #ff3366;
+    --text: #e8f4fd;
+    --muted: #6b8fa8;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── HEADER ─────────────────────────────────── */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 24px;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 52px);
+    font-weight: 800;
+    line-height: 1.05;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  .header-sub {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+    max-width: 500px;
+    line-height: 1.6;
+  }
+
+  .header-meta {
+    text-align: right;
+  }
+
+  .meta-badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .location-pills {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .pill-kwali { border-color: var(--accent); color: var(--accent); }
+  .pill-sheda { border-color: var(--accent2); color: var(--accent2); }
+  .pill-bako  { border-color: var(--accent3); color: var(--accent3); }
+
+  /* ─── KPI CARDS ──────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-color);
+  }
+
+  .kpi-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-color);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .kpi-unit {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .kpi-status {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-color);
+  }
+
+  /* ─── SECTION TITLES ─────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .section-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 32px;
+  }
+
+  /* ─── CHART CARDS ────────────────────────────── */
+  .charts-grid {
+    display: grid;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .charts-grid-2 { grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); }
+  .charts-grid-3 { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+  }
+
+  .chart-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .chart-card-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 260px;
+  }
+
+  .chart-wrap-tall {
+    position: relative;
+    height: 320px;
+  }
+
+  /* ─── COMPARISON TABLE ───────────────────────── */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 40px;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(26,48,80,0.5);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(0,212,255,0.03); }
+
+  .param-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .val-kwali { color: var(--accent); }
+  .val-sheda { color: var(--accent2); }
+  .val-bako  { color: var(--accent3); }
+  .val-who   { color: var(--warn); font-size: 10px; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .badge-ok { background: rgba(0,255,157,0.1); color: var(--accent2); border: 1px solid rgba(0,255,157,0.2); }
+  .badge-warn { background: rgba(255,183,0,0.1); color: var(--warn); border: 1px solid rgba(255,183,0,0.2); }
+
+  /* ─── METALS PANEL ───────────────────────────── */
+  .metals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .metal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .metal-card:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .metal-symbol {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .metal-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .metal-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .metal-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ─── WHO COMPLIANCE ─────────────────────────── */
+  .compliance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .compliance-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .compliance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .compliance-name {
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .compliance-bar-wrap {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .compliance-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1.5s ease;
+  }
+
+  .compliance-values {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* ─── FOOTER ─────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-left {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .footer-right {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .watermark {
+    font-size: 10px;
+    color: rgba(0,212,255,0.4);
+    letter-spacing: 2px;
+  }
+
+  /* Fade-in animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card, .chart-card, .table-card { animation: fadeUp 0.6s ease both; }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+  .kpi-card:nth-child(5) { animation-delay: 0.25s; }
+  .kpi-card:nth-child(6) { animation-delay: 0.30s; }
+
+  @media (max-width: 768px) {
+    header { grid-template-columns: 1fr; }
+    .header-meta { text-align: left; }
+    .location-pills { justify-content: flex-start; }
+    .charts-grid-2, .charts-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ─── HEADER ─────────────────────────────────── -->
+  <header>
+    <div>
+      <div class="header-tag">Environmental Research · Nigeria</div>
+      <h1>Water Quality<br>Analysis 2024</h1>
+      <p class="header-sub">Physical, chemical & heavy metal characterisation of water samples collected during the 2024 rainy season across three study sites in the FCT, Abuja.</p>
+    </div>
+    <div class="header-meta">
+      <div class="meta-badge">RAINING SEASON 2024</div>
+      <br>
+      <div class="location-pills">
+        <span class="pill pill-kwali">Kwali (n=20)</span>
+        <span class="pill pill-sheda">Sheda (n=8)</span>
+        <span class="pill pill-bako">Bako (n=10)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── KPI CARDS ──────────────────────────────── -->
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">Key Indicators — Kwali Site</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--accent-color: var(--accent);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">pH (Mean)</div>
+      <div class="kpi-value">6.76</div>
+      <div class="kpi-unit">WHO range: 6.5–8.5</div>
+    </div>
+    <div class="kpi-card" style="--accent-color: var(--accent2);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">Conductivity</div>
+      <div class="kpi-value">738</div>
+      <div class="kpi-unit">µS/cm (mean)</div>
+    </div>
+    <div class="kpi-card" style="--accent-color: var(--accent3);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">TDS Mean</div>
+      <div class="kpi-value">361</div>
+      <div class="kpi-unit">mg/L</div>
+    </div>
+    <div class="kpi-card" style="--accent-color: var(--warn);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">Hardness</div>
+      <div class="kpi-value">200</div>
+      <div class="kpi-unit">mg/L (mean)</div>
+    </div>
+    <div class="kpi-card" style="--accent-color: var(--accent);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">Chloride</div>
+      <div class="kpi-value">9.86</div>
+      <div class="kpi-unit">mg/L (mean)</div>
+    </div>
+    <div class="kpi-card" style="--accent-color: var(--accent2);">
+      <div class="kpi-status"></div>
+      <div class="kpi-label">Turbidity</div>
+      <div class="kpi-value">2.71</div>
+      <div class="kpi-unit">NTU (mean)</div>
+    </div>
+  </div>
+
+  <!-- ─── CHART ROW 1: Site Comparison ──────────── -->
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">Cross-Site Parameter Comparison</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="charts-grid charts-grid-2">
+    <div class="chart-card">
+      <div class="chart-card-title">Physical Parameters by Site</div>
+      <div class="chart-card-sub">Mean values — Kwali / Sheda / Bako</div>
+      <div class="chart-wrap-tall">
+        <canvas id="physicalChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">pH Distribution Across Sites</div>
+      <div class="chart-card-sub">Mean pH with WHO guideline overlay</div>
+      <div class="chart-wrap-tall">
+        <canvas id="phChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CHART ROW 2 ────────────────────────────── -->
+  <div class="charts-grid charts-grid-3">
+    <div class="chart-card">
+      <div class="chart-card-title">Conductivity vs TDS</div>
+      <div class="chart-card-sub">All 20 Kwali samples</div>
+      <div class="chart-wrap">
+        <canvas id="conductChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Hardness Comparison</div>
+      <div class="chart-card-sub">Mean water hardness (mg/L) per site</div>
+      <div class="chart-wrap">
+        <canvas id="hardnessChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Ion Concentrations — Kwali</div>
+      <div class="chart-card-sub">Chloride & Nitrate mean values</div>
+      <div class="chart-wrap">
+        <canvas id="ionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── HEAVY METALS ──────────────────────────── -->
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">Heavy Metals & Major Ions — Kwali</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="metals-grid">
+    <div class="metal-card"><span class="metal-symbol">Co</span><div class="metal-name">Cobalt</div><div class="metal-value">0.407</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent2)">Fe</span><div class="metal-name">Iron</div><div class="metal-value">0.755</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent3)">Cu</span><div class="metal-name">Copper</div><div class="metal-value">0.118</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--warn)">Cd</span><div class="metal-name">Cadmium</div><div class="metal-value">0.191</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol">Cr</span><div class="metal-name">Chromium</div><div class="metal-value">0.108</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent2)">Ni</span><div class="metal-name">Nickel</div><div class="metal-value">0.187</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--danger)">Pb</span><div class="metal-name">Lead</div><div class="metal-value">0.786</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent3)">Mn</span><div class="metal-name">Manganese</div><div class="metal-value">0.058</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol">Zn</span><div class="metal-name">Zinc</div><div class="metal-value">-0.024</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent2)">Mg</span><div class="metal-name">Magnesium</div><div class="metal-value">8.97</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--warn)">Ca</span><div class="metal-name">Calcium</div><div class="metal-value">34.5</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent)">Na</span><div class="metal-name">Sodium</div><div class="metal-value">9.81</div><div class="metal-label">mg/L mean</div></div>
+    <div class="metal-card"><span class="metal-symbol" style="color:var(--accent3)">K</span><div class="metal-name">Potassium</div><div class="metal-value">7.08</div><div class="metal-label">mg/L mean</div></div>
+  </div>
+
+  <!-- Heavy metals chart -->
+  <div class="charts-grid charts-grid-2">
+    <div class="chart-card">
+      <div class="chart-card-title">Trace Heavy Metals Across 20 Samples</div>
+      <div class="chart-card-sub">Co, Fe, Cu, Cd, Cr, Ni, Pb per sample (mg/L)</div>
+      <div class="chart-wrap-tall">
+        <canvas id="metalsChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Major Ions — Mg, Ca, Na, K</div>
+      <div class="chart-card-sub">Concentration spread across 20 Kwali samples</div>
+      <div class="chart-wrap-tall">
+        <canvas id="majorIonsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── COMPARISON TABLE ───────────────────────── -->
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">Statistical Summary — All Sites</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="chart-card-title" style="margin-bottom:4px">Physicochemical Parameters — Mean Values</div>
+    <div class="chart-card-sub">Compared against WHO drinking water guidelines</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Kwali (n=20)</th>
+          <th>Sheda (n=8)</th>
+          <th>Bako (n=10)</th>
+          <th>WHO Limit</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="param-name">pH</td><td class="val-kwali">6.758</td><td class="val-sheda">6.38</td><td class="val-bako">6.69</td><td class="val-who">6.5–8.5</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+        <tr><td class="param-name">Turbidity (NTU)</td><td class="val-kwali">2.71</td><td class="val-sheda">0.81</td><td class="val-bako">0.79</td><td class="val-who">5.0</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+        <tr><td class="param-name">Salinity</td><td class="val-kwali">0.363</td><td class="val-sheda">0.228</td><td class="val-bako">0.423</td><td class="val-who">—</td><td><span class="status-badge badge-ok">Low</span></td></tr>
+        <tr><td class="param-name">TDS (mg/L)</td><td class="val-kwali">361.1</td><td class="val-sheda">151.0</td><td class="val-bako">843.4</td><td class="val-who">1000</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+        <tr><td class="param-name">Conductivity (µS/cm)</td><td class="val-kwali">738.2</td><td class="val-sheda">320.7</td><td class="val-bako">855.8</td><td class="val-who">—</td><td><span class="status-badge badge-ok">Normal</span></td></tr>
+        <tr><td class="param-name">Chloride (mg/L)</td><td class="val-kwali">9.86</td><td class="val-sheda">4.06</td><td class="val-bako">11.73</td><td class="val-who">250</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+        <tr><td class="param-name">Nitrate (mg/L)</td><td class="val-kwali">-2.65*</td><td class="val-sheda">6.48</td><td class="val-bako">1.71</td><td class="val-who">50</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+        <tr><td class="param-name">Nitrite (mg/L)</td><td class="val-kwali">3.39</td><td class="val-sheda">8.92</td><td class="val-bako">10.09</td><td class="val-who">3.0</td><td><span class="status-badge badge-warn">Review</span></td></tr>
+        <tr><td class="param-name">Hardness (mg/L)</td><td class="val-kwali">200</td><td class="val-sheda">331.3</td><td class="val-bako">218</td><td class="val-who">500</td><td><span class="status-badge badge-ok">Within</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-top:16px;">* Negative nitrate values may indicate analytical/calibration artefacts in field measurements. · All values in mg/L unless stated.</p>
+  </div>
+
+  <!-- ─── FOOTER ─────────────────────────────────── */
+  <footer>
+    <div class="footer-left">
+      <div><strong style="color:var(--text)">2024 Raining Season Water Quality Study</strong></div>
+      <div>Sites: Kwali · Sheda · Bako — Federal Capital Territory, Nigeria</div>
+      <div>Parameters: Physical · Chemical · Heavy Metals · Major Ions</div>
+    </div>
+    <div class="footer-right">
+      <div class="watermark">DASHBOARD · 2024</div>
+      <div>Standards: WHO · ISO · USEPA</div>
+      <div>38 Total Samples Analysed</div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const ACCENT  = '#00d4ff';
+const GREEN   = '#00ff9d';
+const ORANGE  = '#ff6b35';
+const WARN    = '#ffb700';
+const DANGER  = '#ff3366';
+const MUTED   = '#6b8fa8';
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: { color: MUTED, font: { family: 'Space Mono', size: 10 }, boxWidth: 12, padding: 16 }
+    },
+    tooltip: {
+      backgroundColor: '#0a1628',
+      borderColor: '#1a3050',
+      borderWidth: 1,
+      titleColor: '#e8f4fd',
+      bodyColor: MUTED,
+      titleFont: { family: 'Syne', size: 13 },
+      bodyFont: { family: 'Space Mono', size: 10 },
+      padding: 12
+    }
+  },
+  scales: {
+    x: { ticks: { color: MUTED, font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(26,48,80,0.5)' }, border: { color: 'rgba(26,48,80,0.8)' } },
+    y: { ticks: { color: MUTED, font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(26,48,80,0.5)' }, border: { color: 'rgba(26,48,80,0.8)' } }
+  }
+};
+
+// 1. Physical Parameters Bar Chart
+new Chart(document.getElementById('physicalChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Turbidity\n(NTU)', 'Salinity', 'Chloride\n(mg/L)', 'Nitrite\n(mg/L)'],
+    datasets: [
+      { label: 'Kwali', data: [2.71, 0.363, 9.86, 3.39], backgroundColor: 'rgba(0,212,255,0.7)', borderColor: ACCENT, borderWidth: 1, borderRadius: 4 },
+      { label: 'Sheda', data: [0.81, 0.228, 4.06, 8.92], backgroundColor: 'rgba(0,255,157,0.7)', borderColor: GREEN, borderWidth: 1, borderRadius: 4 },
+      { label: 'Bako',  data: [0.79, 0.423, 11.73, 10.09], backgroundColor: 'rgba(255,107,53,0.7)', borderColor: ORANGE, borderWidth: 1, borderRadius: 4 }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { ...chartDefaults.plugins.legend } } }
+});
+
+// 2. pH chart
+new Chart(document.getElementById('phChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Kwali', 'Sheda', 'Bako'],
+    datasets: [
+      {
+        label: 'Mean pH',
+        data: [6.758, 6.38, 6.69],
+        backgroundColor: [
+          'rgba(0,212,255,0.7)', 'rgba(0,255,157,0.7)', 'rgba(255,107,53,0.7)'
+        ],
+        borderColor: [ACCENT, GREEN, ORANGE],
+        borderWidth: 2,
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      ...chartDefaults.scales,
+      y: {
+        ...chartDefaults.scales.y,
+        min: 5.5, max: 9.0,
+        ticks: { color: MUTED, font: { family: 'Space Mono', size: 9 } },
+      }
+    },
+    plugins: {
+      ...chartDefaults.plugins,
+      annotation: undefined,
+      legend: { display: false },
+      tooltip: chartDefaults.plugins.tooltip
+    }
+  }
+});
+
+// 3. Conductivity vs TDS scatter
+const kwaliTDS = [506.3, 475.2, 434.0, 469.4, 442.2, 415.6, 388.0, 392.4, 401.1, 475.2, 430.0, 18.08, 460.0, 455.5, 480.0, 495.0, 390.0, 385.0, 370.0, 350.0];
+const kwaliCond = [1033,980,890,950,900,850,810,830,855,960,870,36.9,930,910,995,1020,800,790,760,720];
+new Chart(document.getElementById('conductChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Kwali Samples',
+      data: kwaliTDS.map((t,i) => ({ x: t, y: kwaliCond[i] })),
+      backgroundColor: 'rgba(0,212,255,0.6)',
+      borderColor: ACCENT,
+      borderWidth: 1,
+      pointRadius: 6,
+      pointHoverRadius: 9
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { ...chartDefaults.scales.x, title: { display: true, text: 'TDS (mg/L)', color: MUTED, font: { family: 'Space Mono', size: 9 } } },
+      y: { ...chartDefaults.scales.y, title: { display: true, text: 'Conductivity (µS/cm)', color: MUTED, font: { family: 'Space Mono', size: 9 } } }
+    }
+  }
+});
+
+// 4. Hardness
+new Chart(document.getElementById('hardnessChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Kwali', 'Sheda', 'Bako'],
+    datasets: [{
+      data: [200, 331.25, 218],
+      backgroundColor: ['rgba(0,212,255,0.8)', 'rgba(0,255,157,0.8)', 'rgba(255,107,53,0.8)'],
+      borderColor: ['#050d1a','#050d1a','#050d1a'],
+      borderWidth: 3,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: MUTED, font: { family: 'Space Mono', size: 10 }, padding: 16 } },
+      tooltip: chartDefaults.plugins.tooltip
+    },
+    cutout: '65%'
+  }
+});
+
+// 5. Ion chart
+new Chart(document.getElementById('ionChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Chloride', 'Nitrate\n(abs)', 'Nitrite', 'Salinity×10', 'Turbidity'],
+    datasets: [
+      { label: 'Kwali', data: [9.86, 2.65, 3.39, 3.63, 2.71], borderColor: ACCENT, backgroundColor: 'rgba(0,212,255,0.1)', pointBackgroundColor: ACCENT, borderWidth: 2 },
+      { label: 'Sheda', data: [4.06, 6.48, 8.92, 2.28, 0.81], borderColor: GREEN, backgroundColor: 'rgba(0,255,157,0.1)', pointBackgroundColor: GREEN, borderWidth: 2 },
+      { label: 'Bako',  data: [11.73, 1.71, 10.09, 4.23, 0.79], borderColor: ORANGE, backgroundColor: 'rgba(255,107,53,0.1)', pointBackgroundColor: ORANGE, borderWidth: 2 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: MUTED, font: { family: 'Space Mono', size: 10 } } }, tooltip: chartDefaults.plugins.tooltip },
+    scales: {
+      r: {
+        ticks: { color: MUTED, font: { family: 'Space Mono', size: 8 }, backdropColor: 'transparent' },
+        grid: { color: 'rgba(26,48,80,0.7)' },
+        pointLabels: { color: MUTED, font: { family: 'Space Mono', size: 9 } }
+      }
+    }
+  }
+});
+
+// 6. Heavy metals line chart
+const samples = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+new Chart(document.getElementById('metalsChart'), {
+  type: 'line',
+  data: {
+    labels: samples,
+    datasets: [
+      { label: 'Co', data: [0.492,0.3875,0.5075,0.4332,0.2388,0.4111,0.5091,0.357,0.3396,0.3688,0.4019,0.6035,0.4209,0.3823,0.5567,0.3701,0.2536,0.4209,0.296,0.3421], borderColor: ACCENT, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 },
+      { label: 'Fe', data: [0.6668,0.5817,0.7829,1.1395,0.8105,0.4745,0.487,0.8976,0.5914,0.5365,0.6499,0.9046,0.5625,0.1633,0.8612,0.8757,1.1755,0.8463,1.1755,0.8463], borderColor: GREEN, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 },
+      { label: 'Pb', data: [0.6406,0.2671,0.4219,0.4471,1.185,0.9767,0.3677,0.8559,1.0102,-0.0352,0.5729,0.6603,0.9983,1.5915,0.8938,1.0244,0.905,0.7946,0.8724,0.8911], borderColor: DANGER, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 },
+      { label: 'Cd', data: [0.1621,0.2012,0.1343,0.1394,0.1486,0.1262,0.1716,0.1828,0.2056,0.1556,0.2248,0.2538,0.1768,0.1977,0.2652,0.2535,0.2708,0.1932,0.2206,0.1914], borderColor: WARN, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { ...chartDefaults.scales.x, title: { display: true, text: 'Sample No.', color: MUTED, font: { family: 'Space Mono', size: 9 } } },
+      y: { ...chartDefaults.scales.y, title: { display: true, text: 'Concentration (mg/L)', color: MUTED, font: { family: 'Space Mono', size: 9 } } }
+    }
+  }
+});
+
+// 7. Major ions
+new Chart(document.getElementById('majorIonsChart'), {
+  type: 'line',
+  data: {
+    labels: samples,
+    datasets: [
+      { label: 'Ca', data: [31.63,32.70,21.28,50.62,7.33,10.78,20.99,24.28,19.95,62.78,23.03,61.81,75.43,31.97,66.74,63.54,11.86,21.18,2.46,52.05], borderColor: WARN, backgroundColor: 'rgba(255,183,0,0.05)', borderWidth: 1.5, pointRadius: 3, tension: 0.3, fill: true },
+      { label: 'Mg', data: [8.09,9.67,9.37,10.16,8.08,8.18,9.14,9.45,9.78,10.17,8.49,10.20,7.48,8.30,9.97,10.15,9.07,8.63,0.43,9.98], borderColor: GREEN, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 },
+      { label: 'Na', data: [10.65,10.95,10.38,11.71,10.27,10.38,10.33,10.37,10.16,11.82,10.67,11.83,11.34,10.59,11.96,11.89,9.99,9.84,0.46,8.15], borderColor: ACCENT, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 },
+      { label: 'K', data: [7.16,13.11,6.32,8.26,4.02,4.43,7.42,7.13,6.07,7.19,11.69,7.45,10.23,6.96,7.26,7.77,5.99,5.53,0.53,7.50], borderColor: ORANGE, backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, tension: 0.3 }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { ...chartDefaults.scales.x, title: { display: true, text: 'Sample No.', color: MUTED, font: { family: 'Space Mono', size: 9 } } },
+      y: { ...chartDefaults.scales.y, title: { display: true, text: 'Concentration (mg/L)', color: MUTED, font: { family: 'Space Mono', size: 9 } } }
+    }
+  }
+});
+</script>
+</body>
+</html>
